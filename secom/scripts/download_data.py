@@ -1,14 +1,14 @@
-"""Download the UCI SECOM dataset and save it as a single tidy file.
+"""UCI SECOM 데이터를 내려받아 하나의 표로 합친다.
 
-Raw files:
-  - secom.data        : 1567 rows x 590 space-separated sensor values ("NaN" for missing)
-  - secom_labels.data : label (-1 = pass, 1 = fail) and timestamp per row
+원본 파일
+  - secom.data        : 1567행 x 590개 센서값, 공백 구분, 결측은 "NaN"
+  - secom_labels.data : 행마다 판정(-1 = 정상, 1 = 불량)과 생산 시각
 
-Output:
-  - data/raw/secom.data, data/raw/secom_labels.data (originals, untouched)
-  - data/processed/secom.parquet (sensors + label(0/1) + timestamp merged)
+결과
+  - data/raw/                  원본 그대로 보관
+  - data/processed/secom.parquet  시각 + 불량 여부(0/1) + 센서 590개
 
-Usage:
+실행
   python scripts/download_data.py
 """
 from pathlib import Path
@@ -27,7 +27,7 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 def download(name: str) -> Path:
     path = RAW_DIR / name
     if path.exists():
-        print(f"[skip] {name} already exists")
+        print(f"[skip] {name} 이미 있음")
         return path
     url = f"{BASE_URL}/{name}"
     print(f"[download] {url}")
@@ -38,7 +38,7 @@ def download(name: str) -> Path:
 
 
 def build_table() -> pd.DataFrame:
-    # Sensor names are anonymized in the source, so use sensor_000..sensor_589
+    # 원본에는 센서 이름이 없어서(익명화) 번호로 붙인다
     X = pd.read_csv(RAW_DIR / "secom.data", sep=r"\s+", header=None, na_values="NaN")
     X.columns = [f"sensor_{i:03d}" for i in range(X.shape[1])]
 
@@ -46,13 +46,13 @@ def build_table() -> pd.DataFrame:
         RAW_DIR / "secom_labels.data",
         sep=r"\s+",
         header=None,
-        names=["label_raw", "timestamp"],  # timestamp is one quoted field: "19/07/2008 11:55:00"
+        names=["label_raw", "timestamp"],  # 시각은 "19/07/2008 11:55:00"처럼 따옴표로 묶인 한 칸
     )
-    # -1 = pass, 1 = fail -> remap to 0/1 so "fail" is the positive class
+    # -1/1을 0/1로 바꾼다. 불량을 1(양성)로 둬야 재현율, PR-AUC가 불량 기준으로 계산된다
     y = (labels["label_raw"] == 1).astype(int).rename("fail")
     ts = pd.to_datetime(labels["timestamp"], format="%d/%m/%Y %H:%M:%S")
 
-    assert len(X) == len(y), "sensor rows and labels must align"
+    assert len(X) == len(y), "센서 행 수와 라벨 행 수가 다르다"
     return pd.concat([ts, y, X], axis=1)
 
 
@@ -65,7 +65,7 @@ def main() -> None:
     df = build_table()
     out = PROCESSED_DIR / "secom.parquet"
     df.to_parquet(out, index=False)
-    print(f"[saved] {out}  shape={df.shape}  fail_rate={df['fail'].mean():.3%}")
+    print(f"[saved] {out}  shape={df.shape}  불량률={df['fail'].mean():.3%}")
 
 
 if __name__ == "__main__":

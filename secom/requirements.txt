@@ -1,25 +1,28 @@
-# Data handling
+# 데이터 처리
 numpy>=1.26
 pandas>=2.2
 scipy>=1.13
 pyarrow>=15
 
-# Modeling
+# 모델
 scikit-learn>=1.5
-lightgbm>=4.3
+lightgbm>=4.3          # macOS는 OpenMP 필요: brew install libomp
 imbalanced-learn>=0.12
 
-# Interpretation
+# 모델 해석
 shap>=0.46
 
-# Visualization
+# 시각화
 matplotlib>=3.8
 seaborn>=0.13
 
-# Notebook
+# 노트북
 jupyter>=1.0
 ipykernel>=6.29
 nbconvert>=7.16
 
-# Utilities
+# 기타
 requests>=2.31
+
+# 테스트
+pytest>=8.0

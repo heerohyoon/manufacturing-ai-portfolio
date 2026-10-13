@@ -8,19 +8,38 @@
 # 저장소 루트에서 가상환경 활성화 후
 cd secom
 python scripts/download_data.py        # data/raw 다운로드 → data/processed/secom.parquet
-jupyter notebook notebooks/01_eda.ipynb
+python -m pytest -q                    # 전처리 누수 방지 테스트
+jupyter notebook notebooks/
 ```
 
 ## 구조
 
 ```
 secom/
-├── scripts/download_data.py   # UCI에서 원본 다운로드 + 라벨/타임스탬프 병합
-├── notebooks/01_eda.ipynb     # 결측률, 상수 피처, 클래스 비율, 시간 drift
-├── src/                       # 전처리/학습/평가 모듈 (2단계)
-├── data/                      # git 미포함 (스크립트로 재생성)
-└── reports/figures/           # EDA·평가 그림
+├── scripts/download_data.py        # UCI에서 원본 다운로드 + 라벨/타임스탬프 병합
+├── notebooks/
+│   ├── 01_eda.ipynb                # 결측률, 상수 피처, 클래스 비율, 시간 drift
+│   └── 02_preprocessing.ipynb      # 시간순 분할, 전처리 Pipeline 결과 확인
+├── src/
+│   ├── data.py                     # 로드 + 시간순 train/test 분할
+│   └── preprocess.py               # 로지스틱용 / LightGBM용 Pipeline
+├── tests/test_preprocess.py        # train에서만 학습하는지(누수 없음) 검증
+├── data/                           # git 미포함 (스크립트로 재생성)
+└── reports/figures/                # EDA·평가 그림
 ```
+
+## 전처리 설계
+
+| | 로지스틱 회귀 | LightGBM |
+|---|---|---|
+| 고결측 센서 (train 결측 >50%) | 제거 | 제거 |
+| 남은 결측 | train 중앙값 대체 | 그대로 둠 (모델이 직접 처리) |
+| 상수 센서 | 제거 | 제거 |
+| 센서 오류값 (예: 9998.9) | train 범위로 클리핑 | 그대로 둠 (트리는 순서만 사용) |
+| 스케일 | 표준화 | 불필요 |
+| 결측 지시자 | 옵션 (on/off 비교) | 옵션 |
+
+시간순 분할: train 1175행 (07-19 ~ 09-29, 불량 80) / test 392행 (09-29 ~ 10-17, 불량 24) → 590개 중 444개 센서 사용.
 
 ## EDA 핵심 결과
 
