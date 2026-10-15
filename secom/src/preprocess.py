@@ -77,6 +77,11 @@ class ClipToTrainRange(BaseEstimator, TransformerMixin):
         return self.min_.index.to_numpy(dtype=object)
 
 
+def missing_flags_step(add_indicator: bool):
+    """결측 지시자 단계. 끌 때도 자리는 남겨둬서(passthrough) 교차검증에서 켜고 끄며 비교할 수 있게 한다."""
+    return ("missing_flags", AddMissingIndicators() if add_indicator else "passthrough")
+
+
 def build_linear_preprocessor(missing_threshold: float = 0.5, add_indicator: bool = False) -> Pipeline:
     """로지스틱 회귀용. 결측이 없어야 하고, 극단값을 막고, 센서 간 크기를 맞춰야 한다.
 
@@ -84,8 +89,8 @@ def build_linear_preprocessor(missing_threshold: float = 0.5, add_indicator: boo
     결측을 먼저 채워야 분산과 범위를 계산할 수 있고,
     오류값을 자른 뒤 표준화해야 평균/표준편차가 오류값에 끌려가지 않는다.
     """
-    steps = [("missing_flags", AddMissingIndicators())] if add_indicator else []
-    steps += [
+    steps = [
+        missing_flags_step(add_indicator),
         ("drop_missing", DropHighMissing(threshold=missing_threshold)),
         ("impute", SimpleImputer(strategy="median")),  # 센서값은 치우침이 있어 평균보다 중앙값이 안전하다
         ("drop_constant", VarianceThreshold(threshold=0.0)),  # 값이 하나뿐인 센서는 구분에 도움이 안 된다
@@ -101,8 +106,8 @@ def build_tree_preprocessor(missing_threshold: float = 0.5, add_indicator: bool 
     LightGBM은 결측을 어느 가지로 보낼지 스스로 배운다. 중앙값으로 덮으면 그 정보가 사라진다.
     트리는 '값이 X보다 큰가'만 보므로 단위가 상관없고, 극단값은 가장 바깥 구간에 들어갈 뿐이다.
     """
-    steps = [("missing_flags", AddMissingIndicators())] if add_indicator else []
-    steps += [
+    steps = [
+        missing_flags_step(add_indicator),
         ("drop_missing", DropHighMissing(threshold=missing_threshold)),
         ("drop_constant", VarianceThreshold(threshold=0.0)),
     ]
