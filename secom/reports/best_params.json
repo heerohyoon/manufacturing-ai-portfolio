@@ -1,0 +1,17 @@
+{
+  "logistic": {
+    "params": {
+      "C": 0.001,
+      "add_indicator": true
+    },
+    "rule": "B_batch_quota"
+  },
+  "lightgbm": {
+    "params": {
+      "colsample_bytree": 0.1,
+      "max_depth": 2,
+      "add_indicator": false
+    },
+    "rule": "B_batch_quota"
+  }
+}

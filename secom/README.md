@@ -26,9 +26,17 @@ jupyter notebook notebooks/
 ```
 secom/
 ├── scripts/download_data.py   # UCI 원본 다운로드 + 라벨/시각 병합
-├── src/data.py                # 학습용 / 평가용(잠금) 불러오기
-├── notebooks/01_eda.ipynb     # 학습 데이터만으로 EDA
-├── tests/test_data.py         # 평가 데이터 잠금 규칙 확인
+├── PROTOCOL.md                # 평가 계획서 (평가 데이터를 열기 전에 커밋)
+├── src/
+│   ├── data.py                # 학습용 / 평가용(잠금) 불러오기
+│   ├── preprocess.py          # 로지스틱용 / LightGBM용 전처리
+│   ├── models.py              # 모델 정의, 시간순 교차검증 튜닝
+│   └── evaluate.py            # 판정 규칙 결정, 지표, 신뢰구간
+├── notebooks/
+│   ├── 01_eda.ipynb           # 학습 데이터만으로 EDA
+│   ├── 02_preprocessing.ipynb # 전처리 결과 확인
+│   └── 03_modeling.ipynb      # 설정값 선택, 판정 방식 결정
+├── tests/                     # 평가 데이터 잠금, 전처리 누수 방지
 ├── data/                      # git 미포함 (스크립트로 재생성)
 └── reports/figures/
 ```
@@ -47,3 +55,14 @@ secom/
 
 ![fail rate over time](reports/figures/03_fail_rate_over_time.png)
 ![extreme values](reports/figures/04_extreme_values.png)
+
+## 학습 데이터에서 내린 결정 (평가 전 고정)
+
+`reports/best_params.json`
+
+| 모델 | 설정 | CV PR-AUC (평균 ± 표준편차) | 판정 방식 |
+|---|---|---|---|
+| 로지스틱 회귀 | C=0.001, 결측 지시자 on | 0.095 ± 0.054 | 묶음 내 상위 20% |
+| LightGBM | depth 2, colsample 0.1, 결측 지시자 off | 0.174 ± 0.194 | 묶음 내 상위 20% |
+
+학습 불량 비율(무작위 기준선)은 0.068. 고정 기준값은 학습 기간 안에서도 다음 시기의 판정 비율이 6~24%로 흔들려, 계획서 규칙에 따라 두 모델 모두 묶음 내 할당량 방식을 쓴다.
