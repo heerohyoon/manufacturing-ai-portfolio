@@ -23,6 +23,7 @@ nbconvert>=7.16
 
 # 기타
 requests>=2.31
+tabulate>=0.9          # 결과 표를 마크다운으로 저장
 
 # 테스트
 pytest>=8.0
