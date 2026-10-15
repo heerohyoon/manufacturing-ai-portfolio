@@ -20,11 +20,13 @@ secom/
 ├── notebooks/
 │   ├── 01_eda.ipynb                # 결측률, 상수 피처, 클래스 비율, 시간 drift
 │   ├── 02_preprocessing.ipynb      # 시간순 분할, 전처리 Pipeline 결과 확인
-│   └── 03_modeling.ipynb           # 로지스틱 회귀 vs LightGBM, 무작위 분할과 비교
+│   ├── 03_modeling.ipynb           # 로지스틱 회귀 vs LightGBM, 무작위 분할과 비교
+│   └── 04_evaluation.ipynb         # 혼동행렬, 검사 할당량별 재현율, 부트스트랩 신뢰구간
 ├── src/
 │   ├── data.py                     # 로드 + 시간순 train/test 분할
 │   ├── preprocess.py               # 로지스틱용 / LightGBM용 Pipeline
-│   └── models.py                   # 모델 정의, 시간순 교차검증으로 설정값 선택
+│   ├── models.py                   # 모델 정의, 시간순 교차검증으로 설정값 선택
+│   └── evaluate.py                 # 판정 기준, 지표, 신뢰구간
 ├── tests/test_preprocess.py        # train에서만 학습하는지(누수 없음) 검증
 ├── data/                           # git 미포함 (스크립트로 재생성)
 └── reports/                        # 그림, 모델 비교표, 선택된 설정값
@@ -77,3 +79,24 @@ secom/
 | LightGBM | 0.175 | 0.073 |
 
 ![split comparison](reports/figures/06_split_comparison.png)
+
+## 평가
+
+운영 가정: 라인에서 제품의 20%까지 추가 검사할 수 있다. 위험도 상위 20%를 불량으로 판정한다.
+
+| 모델 | 불량 재현율 (상위 20% 검사) | 정밀도 | test PR-AUC (95% 구간) |
+|---|---|---|---|
+| 무작위 검사 | 20% (기대값) | 6.1% | 0.061 |
+| 로지스틱 회귀 | **33% (8/24)** [14%, 50%] | 10.1% | 0.097 [0.060, 0.171] |
+| LightGBM | 21% (5/24) [7%, 40%] | 6.3% | 0.073 [0.044, 0.128] |
+
+![confusion matrix](reports/figures/07_confusion_matrix.png)
+![gain curve](reports/figures/08_gain_curve.png)
+
+- 로지스틱 회귀는 모든 검사 비율에서 무작위보다 위에 있지만, test 불량이 24개뿐이라 신뢰구간 하한이 무작위 기준선 아래다. 통계적으로 "무작위보다 낫다"고 단정할 수 없다.
+- 학습 기간에서 정한 고정 확률 기준값은 test 기간에 제품의 4.8%만 걸러냈다. 시기가 바뀌면 모델 확률이 전체적으로 이동하므로, 운영에서는 묶음 내 상위 N%를 검사하는 할당량 방식이 안정적이다.
+
+## 평가 기록
+
+- 모델 설정(`reports/best_params.json`)과 판정 기준은 학습 데이터 안의 시간순 교차검증으로 정했다.
+- 03 단계 코드를 작성하기 전 탐색 실험에서 test 점수를 몇 차례 출력한 적이 있다. 최종 설정 선택에는 쓰지 않았지만, test를 한 번도 보지 않은 상태의 평가는 아니다. 이후 단계는 학습 데이터만으로 결정했다.
