@@ -56,11 +56,18 @@ def main() -> None:
     overlap = set(train["lot"]) & set(test["lot"])
     assert not overlap, f"학습/평가에 같은 로트가 있다: {len(overlap)}개"
 
+    # 평가 데이터에 학습 데이터와 칸 값까지 똑같은 맵이 있는지 개수만 센다 (라벨은 보지 않는다)
+    def key(m):
+        return m.shape, m.astype(np.int8).tobytes()
+    train_keys = set(train["wafer_map"].map(key))
+    n_dup = int(test["wafer_map"].map(key).isin(train_keys).sum())
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     train.to_pickle(OUT_DIR / "train.pkl")
     test.to_pickle(OUT_DIR / "test_locked.pkl")
     print(f"[saved] 학습 {len(train):,}개 ({train['lot'].nunique():,}개 로트), "
           f"평가 {len(test):,}개 ({test['lot'].nunique():,}개 로트), 겹치는 로트 0개")
+    print(f"[check] 학습 데이터와 똑같은 맵이 평가 데이터에 {n_dup:,}개")
 
 
 if __name__ == "__main__":

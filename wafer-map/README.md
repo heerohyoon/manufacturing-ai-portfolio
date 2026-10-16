@@ -30,8 +30,27 @@ python -m pytest -q
 
 ```
 wafer-map/
-├── scripts/prepare_data.py   # 원본 읽기(구버전 pickle 호환), 라벨 있는 웨이퍼만, 원본 분할로 저장
+├── scripts/
+│   ├── prepare_data.py       # 원본 읽기(구버전 pickle 호환), 라벨 있는 웨이퍼만, 원본 분할로 저장
+│   └── make_viewer.py        # 학습 데이터를 패턴별로 넘겨보는 HTML 뷰어
+├── notebooks/01_eda.ipynb    # 학습 데이터만으로 EDA
 ├── src/data.py               # 학습용 / 평가용(잠금) 불러오기
 ├── tests/test_data.py        # 평가 데이터 잠금 규칙 확인
 └── data/                     # git 미포함
 ```
+
+## EDA 결과 (학습 데이터)
+
+![examples](reports/figures/02_examples.png)
+
+| 발견 | 수치 | 결정 |
+|---|---|---|
+| 심한 불균형 | none 67.6%, Near-full 54개 | 매크로 F1, 패턴별 재현율, 클래스 가중치 |
+| 패턴마다 위치가 다름 | 고리별 불량 밀도가 패턴마다 다름. Edge-Loc과 Edge-Ring은 방향 정보가 필요 | 기준 모델: 고리별·방향별 밀도 등 직접 만든 특징 + LightGBM |
+| 크기가 제각각 | 94%가 64칸 이하. 큰 맵을 단순히 줄이면 가는 선이 사라짐 | 64×64, 줄일 때 불량 칩 보존 |
+| **맵 크기가 답을 알려줌** | 맵 크기만으로 매크로 F1 0.48 (Edge-Ring 0.94) | 크기만 쓴 모델을 기준선으로, 학습에 없던 크기의 웨이퍼 성능 따로 보고 |
+| 로트 안 패턴 반복 | Edge-Ring이 나온 로트의 92%가 Edge-Ring | 교차검증도 로트 단위 |
+| 똑같은 맵 | 평가 데이터에 학습 데이터와 똑같은 맵 3,158개 | 똑같은 맵을 뺀 점수도 보고 |
+| 라벨 오류 가능성 | 눈으로 봐도 다른 패턴 같은 예가 있음 | 결과 해석 시 한계로 언급 |
+
+![radial profile](reports/figures/04_radial_profile.png)
