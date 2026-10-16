@@ -33,9 +33,21 @@ wafer-map/
 ├── scripts/
 │   ├── prepare_data.py       # 원본 읽기(구버전 pickle 호환), 라벨 있는 웨이퍼만, 원본 분할로 저장
 │   └── make_viewer.py        # 학습 데이터를 패턴별로 넘겨보는 HTML 뷰어
-├── notebooks/01_eda.ipynb    # 학습 데이터만으로 EDA
-├── src/data.py               # 학습용 / 평가용(잠금) 불러오기
-├── tests/test_data.py        # 평가 데이터 잠금 규칙 확인
+│   ├── train.py              # M0, M1 교차검증과 설정 선택 → train_cnn.py를 별도 프로세스로 실행
+│   └── train_cnn.py          # M2 CNN: 멈출 에폭 결정, 전체 데이터로 최종 학습
+├── PROTOCOL.md               # 평가 계획서 (평가 데이터를 열기 전에 커밋)
+├── notebooks/
+│   ├── 01_eda.ipynb          # 학습 데이터만으로 EDA
+│   └── 02_models.ipynb       # 교차검증 결과 정리
+├── src/
+│   ├── data.py               # 학습용 / 평가용(잠금) 불러오기
+│   ├── preprocess.py         # 64x64 변환 (불량 보존)
+│   ├── features.py           # M0 크기 특징, M1 모양 특징
+│   ├── evaluation.py         # 로트 단위 교차검증, 매크로 F1
+│   ├── models.py             # M0, M1 (LightGBM)
+│   └── cnn.py                # M2 (PyTorch). models.py와 같은 프로세스에서 쓰지 않음
+├── models/cnn_final.pt       # 평가 전에 고정한 최종 CNN 가중치
+├── tests/                    # 평가 데이터 잠금, 전처리·특징, 모듈 분리 확인
 └── data/                     # git 미포함
 ```
 
@@ -54,3 +66,19 @@ wafer-map/
 | 라벨 오류 가능성 | 눈으로 봐도 다른 패턴 같은 예가 있음 | 결과 해석 시 한계로 언급 |
 
 ![radial profile](reports/figures/04_radial_profile.png)
+
+## 교차검증 결과 (학습 데이터, 로트 단위 5-fold)
+
+| 모델 | 매크로 F1 | 비고 |
+|---|---|---|
+| M0 크기 기준선 | 0.484 | 맵 내용을 보지 않음 |
+| M1 특징 모델 | 0.914 | `num_leaves=31`, `min_child_samples=20` |
+| M2 CNN | 0.936 (fold 0만) | 같은 fold로 에폭을 골라 낙관적인 값 |
+
+![per class](reports/figures/06_cv_per_class.png)
+
+- 모양 특징을 넣으면 크기만 볼 때보다 크게 오른다(0.48 → 0.91).
+- M1 대비 M2의 차이는 Scratch(0.85 → 0.94)와 Near-full(0.90 → 0.96)에서 가장 크다.
+- CNN 검증 점수가 에폭마다 0.72~0.94로 흔들린다. 최종 모델(23에폭)이 좋은 지점이라는 보장이 없어 결과 해석 때 한계로 적는다.
+
+![cnn history](reports/figures/07_cnn_history.png)
