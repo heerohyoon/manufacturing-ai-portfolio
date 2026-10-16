@@ -10,6 +10,8 @@ from src import data
 
 ROOT = Path(__file__).resolve().parents[1]
 FINAL_SCRIPT = ROOT / "scripts" / "final_evaluation.py"
+# 최종 평가가 끝난 뒤 추가한 사후 분석 스크립트 (PROTOCOL.md 변경 기록). 결정을 바꾸지 않는다.
+POSTHOC_SCRIPT = ROOT / "scripts" / "posthoc_predictions.py"
 
 
 def test_load_test_requires_unlock():
@@ -25,7 +27,7 @@ def test_only_final_script_opens_test():
             continue
         if "load_test(" in path.read_text(encoding="utf-8"):
             callers.append(path.relative_to(ROOT))
-    assert set(callers) <= {FINAL_SCRIPT.relative_to(ROOT)}, callers
+    assert set(callers) <= {FINAL_SCRIPT.relative_to(ROOT), POSTHOC_SCRIPT.relative_to(ROOT)}, callers
 
 
 def test_no_other_file_reads_locked_pickle():
