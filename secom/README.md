@@ -36,11 +36,11 @@
 
 | 순서 | 내용 | 커밋 |
 |---|---|---|
-| 1 | 시간순 분할(앞 75% 학습 / 뒤 25% 평가), 평가 데이터 잠금, 학습 데이터 EDA | [`b002c9e`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/b002c9e) |
-| 2 | 평가 계획서 커밋: 전처리, 후보 설정, 판정 규칙, 보고 지표, 해석 규칙 | [`23d9408`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/23d9408) |
-| 3 | 학습 데이터로 설정값과 판정 방식 결정, 고정 | [`46d30b5`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/46d30b5) |
-| 4 | 평가 스크립트 커밋 (학습 데이터로 리허설 후) | [`83ed47b`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/83ed47b) |
-| 5 | 평가 데이터 1회 평가 | [`a1db2e7`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/a1db2e7) |
+| 1 | 시간순 분할(앞 75% 학습 / 뒤 25% 평가), 평가 데이터 잠금, 학습 데이터 EDA | [`958d916`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/958d916) |
+| 2 | 평가 계획서 커밋: 전처리, 후보 설정, 판정 규칙, 보고 지표, 해석 규칙 | [`cf4ab47`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/cf4ab47) |
+| 3 | 학습 데이터로 설정값과 판정 방식 결정, 고정 | [`915c0bc`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/915c0bc) |
+| 4 | 평가 스크립트 커밋 (학습 데이터로 리허설 후) | [`8a9668a`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/8a9668a) |
+| 5 | 평가 데이터 1회 평가 | [`d75204f`](https://github.com/heerohyoon/manufacturing-ai-portfolio/commit/d75204f) |
 
 - 평가 데이터는 `src/data.py`의 잠금 함수로만 열리고, 테스트가 최종 평가 스크립트 외의 호출을 막는다.
 - 결측 대체값, 분위수, 표준화 값은 모두 sklearn Pipeline 안에서 학습 데이터로만 계산한다.
@@ -76,6 +76,8 @@
 | LightGBM | 0.175 | 0.073 |
 
 전체 결과: [reports/final/final_evaluation.md](reports/final/final_evaluation.md)
+
+결과 파일에 적힌 코드 버전 `83ed47b`는 커밋 기록을 정리하면서 해시가 바뀐 것으로, 현재 `8a9668a`와 같은 코드다.
 
 ## 5. 점검 후보 센서 (SHAP)
 
