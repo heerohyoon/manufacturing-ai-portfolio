@@ -64,17 +64,24 @@ def predict_proba(model: nn.Module, X: np.ndarray, batch: int = 1024) -> np.ndar
     return np.concatenate(out)
 
 
-def train_cnn(X: np.ndarray, y: np.ndarray, epochs: int, X_val=None, y_val=None, patience: int = 5,
-              seed: int = 0, batch: int = 256, log=print):
-    """CNN을 학습한다. 검증 데이터가 있으면 에폭마다 매크로 F1을 재고, patience만큼 안 오르면 멈춘다.
+def train_cnn(X: np.ndarray, y: np.ndarray, epochs: int, X_val=None, y_val=None, patience: int | None = None,
+              seed: int = 0, batch: int = 256, cosine: bool = True, log=print):
+    """CNN을 학습한다.
 
-    반환: (모델, 에폭별 기록, 가장 좋았던 에폭 수). 검증 데이터가 없으면 정해진 에폭 수만큼 학습한다.
+    cosine=True: 학습률을 1e-3에서 0 가까이까지 코사인 곡선으로 줄인다. 처음에는 크게, 끝에서는 작게 고쳐서
+    마지막 에폭에서 모델이 안정적으로 수렴하게 한다. 이때는 정해진 에폭을 다 마친 모델을 쓴다.
+    patience를 주면(학습률 고정 실험용) 검증 매크로 F1이 그만큼 안 오를 때 멈추고 가장 좋았던 에폭의 모델을 돌려준다.
+    검증 데이터가 있으면 에폭마다 매크로 F1을 기록한다.
+
+    반환: (모델, 에폭별 기록, 가장 좋았던 에폭 수)
     """
     torch.manual_seed(seed)
     gen = torch.Generator().manual_seed(seed)
     dev = device()
     model = WaferCNN().to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    steps_per_epoch = (len(X) + batch - 1) // batch
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs * steps_per_epoch) if cosine else None
     loss_fn = nn.CrossEntropyLoss(weight=class_weights(y).to(dev))
     X_t, y_t = torch.from_numpy(np.array(X, copy=True)), torch.from_numpy(np.array(y, copy=True)).long()
 
@@ -91,8 +98,10 @@ def train_cnn(X: np.ndarray, y: np.ndarray, epochs: int, X_val=None, y_val=None,
             loss = loss_fn(model(xb), yb)
             loss.backward()
             opt.step()
+            if sched is not None:
+                sched.step()  # 배치마다 학습률을 조금씩 줄인다
             total += loss.item() * len(idx)
-        record = {"epoch": epoch, "train_loss": total / len(X_t)}
+        record = {"epoch": epoch, "train_loss": total / len(X_t), "lr": opt.param_groups[0]["lr"]}
 
         if X_val is not None:
             f1 = macro_f1(y_val, predict_proba(model, X_val).argmax(1))
@@ -104,9 +113,9 @@ def train_cnn(X: np.ndarray, y: np.ndarray, epochs: int, X_val=None, y_val=None,
                 waited += 1
         history.append(record)
         log(record)
-        if X_val is not None and waited >= patience:
+        if X_val is not None and patience is not None and waited >= patience:
             break
 
-    if best_state is not None:
+    if patience is not None and best_state is not None:
         model.load_state_dict(best_state)
     return model, history, best_epoch
